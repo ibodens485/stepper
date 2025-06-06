@@ -6,7 +6,7 @@
 #define DIRECTION_CW 1
 #define DIRECTION_CCW 0
 
-class Stepper {
+class BetterStepper {
    private:
     int enPin;
     int dirPin;
@@ -21,7 +21,7 @@ class Stepper {
     long maxSpeed = 3200 * 4;    // steps/sec
 
     long lastMicros = 0;
-    long timePassed = 0;
+    long currentTime = 0;
     long stepError = 0;
     const long stepThreshold = 1000000;  // fixed point denominator (1e6 for µs)
 
@@ -42,15 +42,11 @@ class Stepper {
     long timeTotal = 0;
     long timeDecel = 0;
 
-    long lastMicros = 0;
-    long currentTime = 0;
-    long stepError = 0;
-
     void setDirection(bool direction);
 
    public:
-    Stepper(int enPin, int dirPin, int stepPin, int stepsPerRevolution);
-    ~Stepper() = default;
+    BetterStepper(int enPin, int dirPin, int stepPin, int stepsPerRevolution);
+    ~BetterStepper() = default;
 
     void enable();
     void disable();

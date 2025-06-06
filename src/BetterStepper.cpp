@@ -1,51 +1,48 @@
-#include "Stepper.hpp"
+#include "BetterStepper.h"
 
 #include <Arduino.h>
 #include "usqrt.h"
 
-void Stepper::setDirection(bool direction) {
+void BetterStepper::setDirection(bool direction) {
     this->direction = direction;
     digitalWrite(dirPin, direction);
 }
 
-Stepper::Stepper(int enPin, int dirPin, int stepPin, int stepsPerRevolution) {
+BetterStepper::BetterStepper(int enPin, int dirPin, int stepPin, int stepsPerRevolution) {
 }
 
-Stepper::~Stepper() {
+void BetterStepper::enable() {
 }
 
-void Stepper::enable() {
+void BetterStepper::disable() {
 }
 
-void Stepper::disable() {
+void BetterStepper::setMaxSpeed(long maxSpeed) {
 }
 
-void Stepper::setMaxSpeed(long maxSpeed) {
-}
-
-long Stepper::getMaxSpeed() {
+long BetterStepper::getMaxSpeed() {
     return 0;
 }
 
-void Stepper::setAcceleration(long acceleration) {
+void BetterStepper::setAcceleration(long acceleration) {
 }
 
-long Stepper::getAcceleration() {
+long BetterStepper::getAcceleration() {
     return 0;
 }
 
-void Stepper::setPosition(long position) {
+void BetterStepper::setPosition(long position) {
 }
 
-long Stepper::getPosition() {
+long BetterStepper::getPosition() {
     return 0;
 }
 
-long Stepper::getSpeed() {
+long BetterStepper::getSpeed() {
     return 0;
 }
 
-void Stepper::move(long steps) {
+void BetterStepper::move(long steps) {
     targetPosition += steps;
 
     if ((steps > 0) != direction) {
@@ -63,7 +60,7 @@ void Stepper::move(long steps) {
     if (stepsAccel * 2 > stepsToTake) {
         stepsAccel = stepsToTake / 2;
 
-        speedLimit = usqrt((uint64_t)minSpeed * minSpeed + (uint64_t)stepsToTake * accel);
+        speedLimit = usqrt_ll((uint64_t)minSpeed * minSpeed + (uint64_t)stepsToTake * accel);
         timeAccel = (uint64_t)timeAccel * (speedLimit - minSpeed) / (maxSpeed - minSpeed);
     }
 
@@ -78,20 +75,20 @@ void Stepper::move(long steps) {
     currentTime = 0;
 }
 
-void Stepper::moveRotations(long rotations) {
+void BetterStepper::moveRotations(long rotations) {
     move(((uint64_t)rotations * stepsPerRevolution) >> 16);
 }
 
-void Stepper::moveTo(long steps) {
+void BetterStepper::moveTo(long steps) {
 }
 
-void Stepper::moveToRotations(long rotations) {
+void BetterStepper::moveToRotations(long rotations) {
 }
 
-void Stepper::stop() {
+void BetterStepper::stop() {
 }
 
-bool Stepper::run() {
+bool BetterStepper::run() {
     if (atTarget())
         return;
 
@@ -133,5 +130,5 @@ bool Stepper::run() {
     return true;
 }
 
-void Stepper::step() {
+void BetterStepper::step() {
 }
