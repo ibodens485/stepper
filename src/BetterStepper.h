@@ -3,77 +3,108 @@
 
 #include <stdint.h>
 
-#define DIRECTION_CW 1
-#define DIRECTION_CCW 0
+enum StepperDirection : bool {
+    DIRECTION_REVERSE = 0,
+    DIRECTION_FORWARD = 1
+};
+
+enum StepperPhase : uint8_t {
+    PHASE_ACCEL,
+    PHASE_COAST,
+    PHASE_DECEL,
+    PHASE_DONE,
+};
 
 class BetterStepper {
    private:
-    int enPin;
+    // pin numbers for direction and step
     int dirPin;
     int stepPin;
+    
+    // user parameters
+    __uint24 minSpeedQ16 = 0;
+    __uint24 maxSpeedQ16 = 1L << 16;
+    __uint24 accelRateQ16 = 1;
+    bool flipDirection = false;
 
-    bool enabled = false;
-    bool direction = DIRECTION_CW;
+    // step pin info for fast access
+    volatile uint8_t* port;
+    uint8_t bitmask;
 
-    int stepsPerRevolution = 200 * 16;
-    const long minSpeed = 100;   // steps/sec
-    const long tickMicros = 20;  // resolution (every 100µs)
-    long maxSpeed = 3200 * 4;    // steps/sec
+    // currently running direction (as the dirPin state is)
+    StepperDirection direction = DIRECTION_FORWARD;
 
-    long lastMicros = 0;
-    long currentTime = 0;
-    long stepError = 0;
-    const long stepThreshold = 1000000;  // fixed point denominator (1e6 for µs)
+    // current position, in steps
+    __int24 position = 0;
+    
+    // bool finite = true;
 
-    int accel = 5000;
+    // finite computed parameters
+    __uint24 ticksAccel;
+    __uint24 ticksCoast;
+    __uint24 ticksDecel;
+    __uint24 ticksTotal;
+    __uint24 stepsToTake;
+    __uint24 speedLimitQ16;
+    
+    // infinite computed parameters
+    __int24 targetSpeedQ16 = 0;
+    
+    // tick accumulators / state
+    __uint24 currentSpeedQ16;
+    uint16_t stepErrorQ16 = 0;
+    
+    // tick state (finite)
+    __uint24 currentTick;
+    __uint24 stepsTaken = 0;
+    StepperPhase phase = PHASE_DONE;
 
-    long stepsTaken = 0;
-    long stepsToTake = 0;
-
-    long position = 0;
-    long targetPosition = 0;
-
-    long stepsAccel = 0;
-    long stepsCoast = 0;
-    long speedLimit = 0;
-
-    long timeAccel = 0;
-    long timeCoast = 0;
-    long timeTotal = 0;
-    long timeDecel = 0;
-
-    void setDirection(bool direction);
-
+    __int24 endStopPosition = 0;
+    bool homed = false;
+    bool homing = false;
+    
+    void setDirection(StepperDirection direction);
+    
+    // advance by a single step
+    void step();
+    
    public:
-    BetterStepper(int enPin, int dirPin, int stepPin, int stepsPerRevolution);
+    volatile bool running = false;
+
+    BetterStepper(int dirPin, int stepPin, bool flipDirection = false);
     ~BetterStepper() = default;
 
-    void enable();
-    void disable();
+    void setMinSpeed(uint32_t minSpeedQ16);
+    uint32_t getMinSpeed();
+    void setMaxSpeed(uint32_t maxSpeedQ16);
+    uint32_t getMaxSpeed();
+    void setAcceleration(uint32_t accelQ16);
+    uint32_t getAcceleration();
 
-    void setMaxSpeed(long maxSpeed);
-    long getMaxSpeed();
-    void setAcceleration(long acceleration);
-    long getAcceleration();
+    void setPosition(int32_t position);
+    int32_t getPosition();
 
-    void setPosition(long position);
-    long getPosition();
-    long getSpeed();
+    void startHoming(StepperDirection direction, uint32_t speedQ16, int32_t homePosition = 0, uint32_t backOffSteps = 0);
+    void endStopTriggered();
 
-    void move(long steps);
-    void moveRotations(long rotations);
-    void moveTo(long steps);
-    void moveToRotations(long rotations);
+    // Move by a specified signed number of steps
+    void moveBy(int32_t steps);
+    // Move to a specified step position
+    void moveTo(int32_t steps);
 
-    void stop();
+    // stop immediately
+    void stopImmediate();
+    
+    // Move at a specified speed forever, until a call to either stop() or stopImmediate()
+    // void moveAt(int32_t speedQ16);
+    // start decelerating to a stop
+    // void stop();
 
-    bool run();
+    // busy wait
+    void waitUntilFinished();
 
-    inline bool atTarget() {
-        return stepsTaken >= stepsToTake;
-    }
-
-    void step();
+    // Periodic tick called at a regular interval
+    void tick();
 };
 
 #endif
