@@ -37,7 +37,7 @@ class BetterStepper {
     // current position, in steps
     __int24 position = 0;
     
-    // bool finite = true;
+    bool finite = true;
 
     // finite computed parameters
     __uint24 ticksAccel;
@@ -58,10 +58,6 @@ class BetterStepper {
     __uint24 currentTick;
     __uint24 stepsTaken = 0;
     StepperPhase phase = PHASE_DONE;
-
-    __int24 endStopPosition = 0;
-    bool homed = false;
-    bool homing = false;
     
     void setDirection(StepperDirection direction);
     
@@ -84,21 +80,17 @@ class BetterStepper {
     void setPosition(int32_t position);
     int32_t getPosition();
 
-    void startHoming(StepperDirection direction, uint32_t speedQ16, int32_t homePosition = 0, uint32_t backOffSteps = 0);
-    void endStopTriggered();
-
     // Move by a specified signed number of steps
     void moveBy(int32_t steps);
     // Move to a specified step position
     void moveTo(int32_t steps);
-
+    // Move at a specified speed forever, until a call to either stop() or stopImmediate()
+    void moveAt(int32_t speedQ16);
+    
+    // start decelerating to a stop
+    void stop();
     // stop immediately
     void stopImmediate();
-    
-    // Move at a specified speed forever, until a call to either stop() or stopImmediate()
-    // void moveAt(int32_t speedQ16);
-    // start decelerating to a stop
-    // void stop();
 
     // busy wait
     void waitUntilFinished();
