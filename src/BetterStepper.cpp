@@ -1,4 +1,4 @@
-#include "BetterStepper.h"
+#include "BetterStepper.hpp"
 
 #include <Arduino.h>
 #include "usqrt.h"
@@ -61,37 +61,6 @@ int32_t BetterStepper::getPosition() {
     return position;
 }
 
-void BetterStepper::startHoming(StepperDirection direction, uint32_t speedQ16, int32_t homePosition, uint32_t backOffSteps) {
-    // TODO
-}
-
-void BetterStepper::endStopTriggered() {
-    setPosition(endStopPosition);
-
-    // TODO
-}
-
-// void BetterStepper::moveAt(int32_t speedQ16) {
-//     StepperDirection wantDirection = (speedQ16 > 0) ? DIRECTION_FORWARD : DIRECTION_REVERSE;
-//     if (wantDirection != direction) {
-//         setDirection(direction);
-//     }
-
-//     if (speedQ16 < 0) {
-//         speedQ16 = -speedQ16;
-//     }
-
-//     finite = false;
-//     targetSpeedQ16 = speedQ16;
-
-//     if (!running) {
-//         currentSpeedQ16 = minSpeedQ16;
-//         stepErrorQ16 = 0;
-//         currentTick = 0;
-//         running = true;
-//     }
-// }
-
 void BetterStepper::moveBy(int32_t steps) {
     if (running) {
         return;
@@ -136,7 +105,7 @@ void BetterStepper::moveBy(int32_t steps) {
     phase = PHASE_ACCEL;
     currentSpeedQ16 = minSpeedQ16;
 
-    // finite = true;
+    finite = true;
 
     running = true;
 }
@@ -146,11 +115,32 @@ void BetterStepper::moveTo(int32_t steps) {
     moveBy(delta);
 }
 
-// void BetterStepper::stop() {
-//     if (!running) return;
-//     finite = false;
-//     targetSpeedQ16 = 0;
-// }
+void BetterStepper::moveAt(int32_t speedQ16) {
+    StepperDirection wantDirection = (speedQ16 > 0) ? DIRECTION_FORWARD : DIRECTION_REVERSE;
+    if (wantDirection != direction) {
+        setDirection(direction);
+    }
+
+    if (speedQ16 < 0) {
+        speedQ16 = -speedQ16;
+    }
+
+    finite = false;
+    targetSpeedQ16 = speedQ16;
+
+    if (!running) {
+        currentSpeedQ16 = minSpeedQ16;
+        stepErrorQ16 = 0;
+        currentTick = 0;
+        running = true;
+    }
+}
+
+void BetterStepper::stop() {
+    if (!running) return;
+    finite = false;
+    targetSpeedQ16 = 0;
+}
 
 void BetterStepper::stopImmediate() {
     if (!running) return;
@@ -168,7 +158,7 @@ void BetterStepper::tick() {
 
     currentTick++;
 
-    // if (finite) {
+    if (finite) {
         switch (phase) {
             case PHASE_ACCEL:
                 if (currentTick >= ticksAccel) {
@@ -199,23 +189,23 @@ void BetterStepper::tick() {
                 currentSpeedQ16 = minSpeedQ16;
                 break;
         }
-    // } else {
-    //     if (currentSpeedQ16 < targetSpeedQ16) {
-    //         currentSpeedQ16 += accelRateQ16;
-    //         if (currentSpeedQ16 > targetSpeedQ16) {
-    //             currentSpeedQ16 = targetSpeedQ16;
-    //         }
-    //     } else if (currentSpeedQ16 > targetSpeedQ16) {
-    //         if (currentSpeedQ16 - accelRateQ16 > minSpeedQ16) {
-    //             currentSpeedQ16 = minSpeedQ16;
-    //         } else {
-    //             currentSpeedQ16 -= accelRateQ16;
-    //         }
-    //         if (currentSpeedQ16 < targetSpeedQ16) {
-    //             currentSpeedQ16 = targetSpeedQ16;
-    //         }
-    //     }
-    // }
+    } else {
+        if (currentSpeedQ16 < targetSpeedQ16) {
+            currentSpeedQ16 += accelRateQ16;
+            if (currentSpeedQ16 > targetSpeedQ16) {
+                currentSpeedQ16 = targetSpeedQ16;
+            }
+        } else if (currentSpeedQ16 > targetSpeedQ16) {
+            if (currentSpeedQ16 - accelRateQ16 > minSpeedQ16) {
+                currentSpeedQ16 = minSpeedQ16;
+            } else {
+                currentSpeedQ16 -= accelRateQ16;
+            }
+            if (currentSpeedQ16 < targetSpeedQ16) {
+                currentSpeedQ16 = targetSpeedQ16;
+            }
+        }
+    }
 
     // step error will never store any non-fractional bits, so widen temporarily
     uint8_t stepsThisTime;
@@ -243,15 +233,15 @@ void BetterStepper::tick() {
         *port &= ~mask;
     }
 
-    // if (finite) {
+    if (finite) {
         if (stepsTaken == stepsToTake) {
             running = false;
             phase = PHASE_DONE;
         }
-    // } else {
-    //     if (currentSpeedQ16 == 0 && targetSpeedQ16 == 0) {
-    //         running = false;
-    //         phase = PHASE_DONE;
-    //     }
-    // }
+    } else {
+        if (currentSpeedQ16 == minSpeedQ16 && targetSpeedQ16 == minSpeedQ16) {
+            running = false;
+            phase = PHASE_DONE;
+        }
+    }
 }
